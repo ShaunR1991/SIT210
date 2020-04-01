@@ -1,0 +1,89 @@
+//Using onboard LED
+int led = D7;
+
+//Timings in accordance with those found here: http://www.codebug.org.uk/learn/step/541/morse-code-timing-rules/
+int delayDit = 100;         //How long dit is on for
+int delayDah = 300;         //How long dah is on for
+int delayDitDah = 100;      //Delay between characters
+int delayChar = 200;        //Delay between letters (will be added to the delay between dits/dahs to meet the 3 units)
+int delaySpace = 400;       //Delay between words (will be added to the delay between characters and delay between dits/dahs to meet the 7 units)
+
+void setup() 
+{
+    pinMode(led, OUTPUT);
+}
+
+void morseDit()
+{
+    digitalWrite(led, HIGH);
+    delay(delayDit);
+    digitalWrite(led, LOW);
+    delay(delayDitDah);
+}
+
+void morseDah()
+{
+    digitalWrite(led, HIGH);
+    delay(delayDah);
+    digitalWrite(led, LOW);
+    delay(delayDitDah);
+}
+
+//S     ...
+void morseS()
+{
+    morseDit();
+    morseDit();
+    morseDit();
+    delay(delayChar); 
+}
+
+//H     ....
+void morseH()
+{
+    morseDit();
+    morseDit();
+    morseDit();
+    morseDit();
+    delay(delayChar);
+}
+
+//A     .-
+void morseA()
+{
+    morseDit();
+    morseDah();
+    delay(delayChar);
+}
+
+//U     ..-
+void morseU()
+{
+    morseDit();
+    morseDit();
+    morseDah();
+    delay(delayChar);
+}
+
+//N     -.
+void morseN()
+{
+    morseDah();
+    morseDit();
+    delay(delayChar);
+}
+
+void morseSpace()
+{
+    delay(delaySpace);
+}
+
+void loop() 
+{
+    morseS();
+    morseH();
+    morseA();
+    morseU();
+    morseN();
+    morseSpace();
+}
