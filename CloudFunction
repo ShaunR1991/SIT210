@@ -1,0 +1,59 @@
+int wave = D5;
+int pat = D6;
+int buzz = D7;
+
+void setup() 
+{
+    Particle.subscribe("Deakin_RIOT_SIT210_Photon_Buddy", myHandler);
+    
+    pinMode(wave, OUTPUT);
+    pinMode(pat, OUTPUT);
+    pinMode(buzz, OUTPUT);
+}
+
+void loop() 
+{
+    
+}
+
+void myHandler(String event, String data)
+{
+    //If "wave" is received, it will buzz once and then flash the green light 5 times.
+    if (data == "wave")
+    {
+        digitalWrite(buzz, HIGH);
+        delay(400);
+        digitalWrite(buzz, LOW);
+        for (int i = 0; i < 5; i++)
+        {
+            digitalWrite(wave, HIGH);
+            delay(100);
+            digitalWrite(wave, LOW);
+            delay(100);
+        }
+    }
+    
+    //If "pat" is received, it will buzz twice and then flash the blue light 10 times.
+    else if (data == "pat")
+    {
+        digitalWrite(buzz, HIGH);
+        delay(200);
+        digitalWrite(buzz, LOW);
+        delay(100);
+        digitalWrite(buzz, HIGH);
+        delay(200);
+        digitalWrite(buzz, LOW);
+        for (int j = 0; j < 10; j++)
+        {
+            digitalWrite(pat, HIGH);
+            delay(50);
+            digitalWrite(pat, LOW);
+            delay(50);
+        }
+    }
+    
+    else
+    {
+        // Do nothing
+    }
+}
