@@ -1,0 +1,31 @@
+//Simulated data to test the webhook integration into ThingSpeak.
+//Shaun Ratcliff 218329902
+//Deakin University
+
+//Onboard LED
+int led = D7;
+
+void setup() 
+{
+    pinMode(led, OUTPUT);
+}
+
+void loop() 
+{
+    //Turn on LED
+    digitalWrite(led, HIGH);
+
+    //Create random temperature between 60 and 80.
+    String temp = String(random(60, 80));
+    
+    //Publish to Particle.
+    Particle.publish("temp", temp, PRIVATE);
+    
+    //Wait 15 seconds
+    delay(15000);
+
+    //Turn off the LED and wait another 15 seconds, leaving 30 seconds between readings.
+    //LED turning on and off to ensure Argon is working.
+    digitalWrite(led, LOW);
+    delay(30000);
+}
