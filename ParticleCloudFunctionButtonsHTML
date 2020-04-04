@@ -12,8 +12,8 @@
     
     <script src="http://cdn.jsdelivr.net/sparkjs/1.0.0/spark.min.js"></script>
     <script>
-      var accessToken = "cfb769c4acbb0a2dce0ceb25eaab368a858c6e16";
-      var deviceID = "e00fce6867ed13bbf90e27f2";
+      var accessToken = "accessToken";
+      var deviceID = "deviceID";
       
       spark.on('login', function(response) {   
         
