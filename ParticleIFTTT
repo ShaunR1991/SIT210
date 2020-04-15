@@ -77,7 +77,7 @@ void loop(void)
   }
   
   /*Check light every minute.*/
-  delay(1000);
+  delay(60000);
 }
 
 /*Reset the timer to 0 when IFTTT button is pressed*/
