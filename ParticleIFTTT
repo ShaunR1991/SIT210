@@ -1,0 +1,88 @@
+#include "Adafruit_TSL2561_U.h"
+Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
+int lightOn = 0;
+int lightCheck = 0;
+int lightMinutes = 0;
+
+/**************************************************************************/
+/*
+    Configures the gain and integration time for the TSL2561
+*/
+/**************************************************************************/
+void configureSensor(void)
+{
+    /* You can also manually set the gain or enable auto-gain support */
+    // tsl.setGain(TSL2561_GAIN_1X);      /* No gain ... use in bright light to avoid sensor saturation */
+    // tsl.setGain(TSL2561_GAIN_16X);     /* 16x gain ... use in low light to boost sensitivity */
+    tsl.enableAutoRange(true);            /* Auto-gain ... switches automatically between 1x and 16x */
+    /* Changing the integration time gives you better sensor resolution (402ms = 16-bit data) */
+    tsl.setIntegrationTime(TSL2561_INTEGRATIONTIME_13MS);      /* fast but low resolution */
+    // tsl.setIntegrationTime(TSL2561_INTEGRATIONTIME_101MS);  /* medium resolution and speed   */
+    // tsl.setIntegrationTime(TSL2561_INTEGRATIONTIME_402MS);  /* 16-bit data but slowest conversions */
+}
+
+void setup(void) 
+{
+    Particle.variable("lightOn", &lightOn, INT);
+    Particle.variable("lightMinutes", &lightMinutes, INT);
+    Particle.subscribe("button", myHandler);
+    pinMode(D7, OUTPUT);
+    configureSensor();
+}
+
+void loop(void) 
+{  
+  /* Get a new sensor event */ 
+  sensors_event_t event;
+  tsl.getEvent(&event);
+ 
+  /*If the light is on the sensor and the bool check is saying no light, change it to light is 
+  on and publish*/
+  if (event.light > 75 && lightOn == 0)
+  {
+    lightOn = 1;
+    lightCheck = 0;
+    digitalWrite(D7, HIGH);
+    Particle.publish("lightOn", (String)lightOn, PRIVATE);
+  }
+  
+  /*If there is no light on the terrarium and hte bool check is saying there is light, change 
+  it to the light being off*/
+  if (event.light < 75 && lightOn == 1)
+  {
+    lightOn = 0;
+    digitalWrite(D7, LOW);
+  }
+  
+  /*If the light has not been on the terrarium for 3 consecutive checks, turn the light to off and publish. 
+  This will help to avoid an instance where light was blocked for a brief period while the check 
+  was taking place.*/
+  if (event.light < 75 && lightOn == 0)
+  {
+    lightCheck += 1;
+    if (lightCheck == 3)
+    {
+        Particle.publish("lightOn", (String)lightOn, PRIVATE);
+    }
+  }
+  
+  /*If the terrarium has totalled 120 minutes in light, publish the event to notify an average of two hours in sun */
+  if (event.light > 75 && lightOn == 1)
+  {
+    lightMinutes += 1;
+    if (lightMinutes == 120)
+    {
+        Particle.publish("lightMinutes", (String)lightMinutes, PRIVATE);
+    }
+  }
+  
+  /*Check light every minute.*/
+  delay(1000);
+}
+
+/*Reset the timer to 0 when IFTTT button is pressed*/
+void myHandler(const char *event, const char *data)
+{
+    lightMinutes = 0;
+    Particle.publish("lightMintues", (String)lightMinutes, PRIVATE);
+}
