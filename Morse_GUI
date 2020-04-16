@@ -1,0 +1,107 @@
+from Tkinter import *
+from gpiozero import LED
+import RPi.GPIO as GPIO
+import tkMessageBox
+import time
+from gpiozero import LED
+
+#Morse Timings
+delayDit = 0.1
+delayDah = 0.3
+delayDitDah = 0.1
+delayChar = 0.2
+delaySpace = 0.4
+
+#Hardware
+GPIO.setmode(GPIO.BCM)
+led = LED(8)
+
+#GUI Definitions
+win = Tk()
+win.title("Morse Translator")
+
+#Event Functions
+def to_morse_code(text):
+
+  #Dictionary of alphanumerics with corresponding Morse
+  code = { 'a':'.-', 'b':'-...', 
+           'c':'-.-.', 'd':'-..', 'e':'.', 
+           'f':'..-.', 'g':'--.', 'h':'....', 
+           'i':'..', 'j':'.---', 'k':'-.-', 
+           'l':'.-..', 'm':'--', 'n':'-.', 
+           'o':'---', 'p':'.--.', 'q':'--.-', 
+           'r':'.-.', 's':'...', 't':'-', 
+           'u':'..-', 'v':'...-', 'w':'.--', 
+           'x':'-..-', 'y':'-.--', 'z':'--..', 
+           '1':'.----', '2':'..---', '3':'...--', 
+           '4':'....-', '5':'.....', '6':'-....', 
+           '7':'--...', '8':'---..', '9':'----.', 
+           '0':'-----', ', ':'--..--', '.':'.-.-.-', 
+           '?':'..--..', '/':'-..-.', '-':'-....-', 
+           '(':'-.--.', ')':'-.--.-', ' ':'~'}
+  
+  #Empty string to write the Morse to         
+  morse_code = ""
+  
+  #Iterate over input and create the morse code, adding break after each char
+  for x in text:
+    morse_code += code[x.lower()]
+    morse_code += "|"
+    
+  return morse_code
+
+#Represented by a .
+def dit():
+  led.on()
+  time.sleep(delayDit)
+  led.off()
+  time.sleep(delayDitDah)
+
+#Represented by a -  
+def dah():
+  led.on()
+  time.sleep(delayDah)
+  led.off()
+  time.sleep(delayDitDah)
+
+#Converts text to Morse, printing the morse to the terminal and flashing the light
+#Maximum 12 characters
+def convert():
+  text = morseInput.get()
+  morseCode = str(to_morse_code(text))
+  #Check if length of text is 12 or less and prompts if not
+  if len(text) > 12:
+    tkMessageBox.showerror("Error", "String can be no longer than 12 characters!")
+  else:
+    print(morseCode)
+    #Iterate over the code and flash the light accordingly
+    for x in morseCode:
+      if x == ".":
+        dit()
+      if x == "-":
+        dah()
+      if x == "~":
+        time.sleep(delaySpace)
+      if x == "|":
+        time.sleep(delayChar)
+    morseInput.delete(0, END)
+
+def close():
+  GPIO.cleanup()
+  win.destroy()
+
+#Widgets
+morseLabel = Label(win, text = "Enter word to convert to Morse Code")
+morseLabel.grid(row = 1, column = 1)
+morseInput = Entry(win)
+morseInput.grid(row = 2, column = 1)
+convertButton = Button(win, text = "Convert", command = convert)
+convertButton.grid(row = 3, column = 1)
+exitButton = Button(win, text = "Exit", command = close)
+exitButton.grid(row = 5, column = 1)
+
+#Exit Cleanly
+win.protocol("WM_DELETE_WINDOW", close)
+
+#Run Forever
+win.mainloop()
