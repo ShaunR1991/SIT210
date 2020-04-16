@@ -3,6 +3,7 @@ Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 1234
 int lightOn = 0;
 int lightCheck = 0;
 int lightMinutes = 0;
+int lightThreshold = 75;
 
 /**************************************************************************/
 /*
@@ -38,7 +39,7 @@ void loop(void)
  
   /*If the light is on the sensor and the bool check is saying no light, change it to light is 
   on and publish*/
-  if (event.light > 75 && lightOn == 0)
+  if (event.light > lightThreshold && lightOn == 0)
   {
     lightOn = 1;
     lightCheck = 0;
@@ -48,7 +49,7 @@ void loop(void)
   
   /*If there is no light on the terrarium and hte bool check is saying there is light, change 
   it to the light being off*/
-  if (event.light < 75 && lightOn == 1)
+  if (event.light < lightThreshold && lightOn == 1)
   {
     lightOn = 0;
     digitalWrite(D7, LOW);
@@ -57,7 +58,7 @@ void loop(void)
   /*If the light has not been on the terrarium for 3 consecutive checks, turn the light to off and publish. 
   This will help to avoid an instance where light was blocked for a brief period while the check 
   was taking place.*/
-  if (event.light < 75 && lightOn == 0)
+  if (event.light < lightThreshold && lightOn == 0)
   {
     lightCheck += 1;
     if (lightCheck == 3)
@@ -67,7 +68,7 @@ void loop(void)
   }
   
   /*If the terrarium has totalled 120 minutes in light, publish the event to notify an average of two hours in sun */
-  if (event.light > 75 && lightOn == 1)
+  if (event.light > lightThreshold && lightOn == 1)
   {
     lightMinutes += 1;
     if (lightMinutes == 120)
@@ -77,7 +78,7 @@ void loop(void)
   }
   
   /*Check light every minute.*/
-  delay(60000);
+  delay(1000);
 }
 
 /*Reset the timer to 0 when IFTTT button is pressed*/
