@@ -1,0 +1,71 @@
+from Tkinter import *
+from gpiozero import LED
+import RPi.GPIO as GPIO
+
+GPIO.setmode(GPIO.BCM)
+
+#Hardware
+red = LED(8)
+yellow = LED(7)
+green = LED(25)
+
+#GUI Definitions
+win = Tk()
+win.title("LED Toggler")
+
+#Event Functions
+def redToggle():
+  if red.is_lit:
+    red.off()
+    redButton["text"] = "Turn Red LED On"
+  else:
+    red.on()
+    yellow.off()
+    yellowButton["text"] = "Turn Yellow LED On"
+    green.off()
+    greenButton["text"] = "Turn Green LED On"
+    redButton["text"] = "Turn Red LED Off"
+    
+def yellowToggle():
+  if yellow.is_lit:
+    yellow.off()
+    yellowButton["text"] = "Turn Yellow LED On"
+  else:
+    yellow.on()
+    red.off()
+    redButton["text"] = "Turn Red LED On"
+    green.off()
+    greenButton["text"] = "Turn Green LED On"
+    yellowButton["text"] = "Turn Yellow LED Off"
+    
+def greenToggle():
+  if green.is_lit:
+    green.off()
+    greenButton["text"] = "Turn Green LED On"
+  else:
+    green.on()
+    red.off()
+    redButton["text"] = "Turn Red LED On"
+    yellow.off()
+    yellowButton["text"] = "Turn Yellow LED On"
+    greenButton["text"] = "Turn Green LED Off"
+    
+def close():
+  GPIO.cleanup()
+  win.destroy()
+
+#Widgets
+redButton = Button(win, text = "Turn Red LED On", command = redToggle, height = 1, width = 25)
+redButton.grid(row = 1, column = 1)
+yellowButton = Button(win, text = "Turn Yellow LED On", command = yellowToggle, height = 1, width = 25)
+yellowButton.grid(row = 2, column = 1)
+greenButton = Button(win, text = "Turn Green LED On", command = greenToggle, height = 1, width = 25)
+greenButton.grid(row = 3, column = 1)
+exitButton = Button(win, text = "Exit", command = close)
+exitButton.grid(row = 5, column = 1)
+
+#Exit Cleanly
+win.protocol("WM_DELETE_WINDOW", close)
+
+#Run Forever
+win.mainloop()
