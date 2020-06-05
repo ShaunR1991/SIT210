@@ -1,0 +1,218 @@
+from Tkinter import *
+from gpiozero import LED
+import RPi.GPIO as GPIO
+import tkMessageBox
+import time
+from gpiozero import LED
+from functools import partial
+import thingspeak
+import urllib2
+import json
+from threading import Thread
+
+#Thingspeak Data
+optionChannel = 1067995 #channel to write the car wash option to
+completeChannel = 1068030 #channel to read from to check if carwash is complete
+write_key = 'E74B4OLYG93LXN28' #key for writing the car wash option
+read_key = 'UYU8JHOLJLAWQMYT' #key for reading the carwash complete bool
+optionChannelData = thingspeak.Channel(id=optionChannel, write_key=write_key, api_key=read_key) #thingspeak function for channel data
+completeChannelData = thingspeak.Channel(id=completeChannel, write_key=write_key, api_key=read_key) #thingspeak function for channel data
+
+#Globals
+wash_type = 0
+contact_type = 0
+option = 0
+completeValue = 0
+carwashEnd = 0
+threadStart = False
+
+#Hardware
+GPIO.setmode(GPIO.BCM)
+green = LED(20)
+red = LED(21)
+
+red.on()
+green.off()
+
+#GUI Definitions
+win = Tk()
+win.minsize(480, 320)
+win.overrideredirect(1)
+
+#Classes
+class StandbyMode:
+  def __init__(self):
+    self._running = True
+    
+  def terminate(self):
+    self._running = False
+    
+  def run(self):
+      global carwashEnd
+      global threadStart
+      
+      while threadStart == False:
+        time.sleep(1)
+      
+      removeContactButtons()
+      publishSelection()
+      
+      time.sleep(5)
+      
+      red.on()
+      green.off()
+      thankyouLabel.place_forget()
+      standbyLabel.place(bordermode=OUTSIDE, height=60, width=420, x=30, y=130)
+      win.update()
+      
+      #Continuously runs while the wash is in progress
+      #Checks if the wash is complete by checking the webhook
+      #Resets the selection panel once complete  
+      while carwashEnd == 0:
+        time.sleep(1)
+         
+      standbyLabel.place_forget() 
+      placeWashButtons()
+      carwashEnd = 0
+      
+      threadStart = False
+      self.run()
+      
+class CheckCarWashEnd:
+  def __init__(self):
+    self._running = True
+    
+  def terminate(self):
+    self._running = False
+  
+  #Gets the value from the webhook to check if the carwash is complete
+  def run(self):
+    global carwashEnd
+    global threadStart
+    
+    while threadStart == False:
+      time.sleep(1)
+    
+    while self._running:
+      conn = urllib2.urlopen("http://api.thingspeak.com/channels/%s/feeds/last.json?api_key=%s" \
+                               % (completeChannel,read_key))
+    
+      response = conn.read()
+      data=json.loads(response)
+      carwashEnd = int(data['field1'])
+      conn.close()
+    
+    threadStart = False  
+    self.run()
+
+#Threads      
+StandByMode = StandbyMode()
+StandByModeThread = Thread(target = StandByMode.run)
+StandByModeThread.start()
+CheckCarWashEnd = CheckCarWashEnd()
+CheckCarWashEndThread = Thread(target = CheckCarWashEnd.run)
+CheckCarWashEndThread.start()
+
+#Event Functions
+
+#Publish the selection to thingspeak to be read by the particle
+#1 = Normal Contact, 2 = Extra Contact, 3 = Supreme Contact, 4 = Normal Contactless, 8 = Extra Contactless, 12 = Supreme Contactless
+def publishSelection():
+  global wash_type
+  global contact_Type
+  global optionChannelData
+  
+  option = wash_type * contact_type
+  response = optionChannelData.update({'field1': str(option)})
+
+#Updats values depending on what type of wash was selected. Brings up the next selection (Contact).
+def makeWashSelection(washtype):
+  removeWashButtons()
+  placeContactButtons()
+  
+  global wash_type
+  wash_type = washtype
+
+#Updates values depending on what type of contact was selected. Once selected, enter standby mode.  
+def makeContactSelection(contacttype):
+  removeContactButtons()
+  thankyouLabel.place(bordermode=OUTSIDE, height=60, width=420, x=30, y=130)
+  win.update()
+  
+  global contact_type
+  contact_type = contacttype
+
+  red.off()
+  green.on()
+
+  #commence the threads
+  global threadStart
+  threadStart = True
+  
+#Place the buttons that allow the user to select what intensity wash they want
+def placeWashButtons():
+  supButton.place(bordermode=OUTSIDE, height=60, width=420, x=30, y=30)
+  extButton.place(bordermode=OUTSIDE, height=60, width=420, x=30, y=130)
+  norButton.place(bordermode=OUTSIDE, height=60, width=420, x=30, y=230)
+  win.update()
+  
+  if StandByMode._running:
+    StandByMode.terminate()
+  if CheckCarWashEnd._running:
+    CheckCarWashEnd.terminate()
+ 
+#Remove the wash selection buttons  
+def removeWashButtons():
+  supButton.place_forget()
+  extButton.place_forget()
+  norButton.place_forget()
+  win.update()
+
+#Place the buttons that allow the user to select what type of contact wash they want  
+def placeContactButtons():
+  contactButton.place(bordermode=OUTSIDE, height=60, width=420, x=30, y=60)
+  contactlessButton.place(bordermode=OUTSIDE, height=60, width=420, x=30, y=200)
+  win.update()
+  
+#Remove the contact selection buttons  
+def removeContactButtons():
+  contactButton.place_forget()
+  contactlessButton.place_forget()
+  win.update()
+
+#Exit cleanly  
+def close():
+  StandByMode.terminate()
+  CheckCarWashEnd.terminate()
+  GPIO.cleanup()
+  win.destroy()
+  red.off()
+  green.off()    
+
+#Widgets
+
+#Buttons to select the type of wash
+supButton = Button(win, text = "Supreme Wash", command=partial(makeWashSelection, 3))
+supButton.place(bordermode=OUTSIDE, height=60, width=420, x=30, y=30)
+extButton = Button(win, text = "Extra Wash", command=partial(makeWashSelection, 2))
+extButton.place(bordermode=OUTSIDE, height=60, width=420, x=30, y=130)
+norButton = Button(win, text = "Normal Wash", command=partial(makeWashSelection, 1))
+norButton.place(bordermode=OUTSIDE, height=60, width=420, x=30, y=230)
+
+#Buttons to select if you want contact or not
+contactButton = Button(win, text = "Contact Wash", command=partial(makeContactSelection, 1))
+contactlessButton = Button(win, text = "Contactless Wash", command=partial(makeContactSelection, 4))
+
+#Label for standbymode
+thankyouLabel = Label(win, text = "Thank You! Please Drive Forward Until Lights Turn Red")
+standbyLabel = Label(win, text = "Please Wait Until Current Wash Is Complete")
+
+#Exit button to reset
+exitButton = Button(win, text = "x", command=close)
+exitButton.place(bordermode=OUTSIDE, height=10, width=10, x=470, y=0)
+
+#Exit Cleanly
+win.protocol("WM_DELETE_WINDOW", close)
+
+#Run Forever
+win.mainloop()
