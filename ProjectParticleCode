@@ -1,0 +1,146 @@
+#include "ThingSpeak.h"
+
+TCPClient client;
+
+//Thingspeak data
+unsigned long carwashOptionChannel = 1067995;
+const char * carwashOptionKey = "874UM1AJGZCI36IX";
+
+//Set pins to be used
+int servo = A1;
+int breakBeam = D0;
+int stopLight = D1;
+int ultraTrig = D2;
+int ultraEcho = D3;
+int contactWash = D4;
+int normalWash = D5;
+int extraWash = D6;
+int supremeWash = D7;
+
+//Set some globals for the types of washes
+float normalContact = 1;
+float extraContact = 2;
+float supremeContact = 3;
+float normalContactless = 4;
+float extraContactless = 8;
+float supremeContactless = 12;
+
+float option = 0;
+
+void setup() 
+{
+    ThingSpeak.begin(client);
+    pinMode(normalWash, OUTPUT);
+    pinMode(extraWash, OUTPUT);
+    pinMode(supremeWash, OUTPUT);
+    pinMode(contactWash, OUTPUT);
+    pinMode(servo, OUTPUT);
+    pinMode(stopLight, OUTPUT);
+    Particle.subscribe("entry", myHandler);
+    Particle.publish("complete", "0", PRIVATE);
+}
+
+void loop() 
+{
+    
+}
+
+//Depending on input, makes the servo simulate the different wash types. Publish that the wash is complete for the pi to read to return back to its original state to accept new washes.
+void washCar(int spins, int speed)
+{
+    int val = 0;
+    
+    while (val < spins)
+    {
+        analogWrite(servo, 1);
+        delay(speed);
+        analogWrite(servo, 0);
+        delay(speed);
+        val++;
+    }
+    
+    digitalWrite(normalWash, LOW);
+    digitalWrite(extraWash, LOW);
+    digitalWrite(supremeWash, LOW);
+    digitalWrite(contactWash, LOW);
+    
+    Particle.publish("complete", "1", PRIVATE);
+    digitalWrite(stopLight, LOW);
+    
+    delay(20000);
+    
+    Particle.publish("complete", "0", PRIVATE);
+}
+
+//Based on the data published by the pi, do that wash.
+void myHandler(const char *event, const char *data)
+{
+    option = ThingSpeak.readFloatField(carwashOptionChannel, 1, carwashOptionKey);
+    Particle.publish("Carwash Option", "Carwash option is: " + String(option),60,PRIVATE);
+    
+    digitalWrite(stopLight, HIGH);
+    
+    delay(3000);
+    
+    if(option == normalContact)
+    {
+        digitalWrite(normalWash, HIGH);
+        digitalWrite(extraWash, LOW);
+        digitalWrite(supremeWash, LOW);
+        digitalWrite(contactWash, HIGH);
+        
+        washCar(5, 1000);
+    }
+    else if(option == extraContact)
+    {
+        digitalWrite(normalWash, LOW);
+        digitalWrite(extraWash, HIGH);
+        digitalWrite(supremeWash, LOW);
+        digitalWrite(contactWash, HIGH);
+        
+        washCar(10, 600);
+    }
+    else if(option == supremeContact)
+    {
+        digitalWrite(normalWash, LOW);
+        digitalWrite(extraWash, LOW);
+        digitalWrite(supremeWash, HIGH);
+        digitalWrite(contactWash, HIGH);
+        
+        washCar(15, 400);
+    }
+    else if(option == normalContactless)
+    {
+        digitalWrite(normalWash, HIGH);
+        digitalWrite(extraWash, LOW);
+        digitalWrite(supremeWash, LOW);
+        digitalWrite(contactWash, LOW);
+        
+        washCar(1, 5000);
+    }
+    else if(option == extraContactless)
+    {
+        digitalWrite(normalWash, LOW);
+        digitalWrite(extraWash, HIGH);
+        digitalWrite(supremeWash, LOW);
+        digitalWrite(contactWash, LOW);
+        
+        washCar(2, 8000);
+    }
+    else if(option == supremeContactless)
+    {
+        digitalWrite(normalWash, LOW);
+        digitalWrite(extraWash, LOW);
+        digitalWrite(supremeWash, HIGH);
+        digitalWrite(contactWash, LOW);
+        
+        washCar(3, 10000);
+    }
+    else
+    {
+        digitalWrite(normalWash, LOW);
+        digitalWrite(extraWash, LOW);
+        digitalWrite(supremeWash, LOW);
+        digitalWrite(normalWash, LOW);
+    }
+}
